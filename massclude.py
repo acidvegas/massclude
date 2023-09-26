@@ -12,21 +12,38 @@ def get_bogons(version):
     url = f'https://team-cymru.org/Services/Bogons/fullbogons-ipv{version}.txt'
     return urllib.request.urlopen(url).read().decode().split('\n')[2:]
 
+def determine_latest_db():
+	'''Determine the latest IXP database.'''
+	data = urllib.request.urlopen('https://publicdata.caida.org/datasets/ixps/').read().decode()
+	latest = time.strftime('%Y%m')
+	if f'_{latest}.jsonl' in data:
+		return latest
+	else: # TODO: This is a mess, clean it up
+		latest = str(int(latest)-1)
+		if f'_{latest}.jsonl' in data:
+			return latest
+		else:
+			latest = str(int(latest)-1)
+			if f'_{latest}.jsonl' in data:
+				return latest
+			else:
+				return None
+
 def get_ixps(version):
 	'''Returns a list of IXP IP addresses from CAIDA.'''
-	latest = time.strftime('%Y%m')
-	try:
-		data = urllib.request.urlopen(f'https://publicdata.caida.org/datasets/ixps/ixs_{latest}.jsonl').read().decode()
-	except:
-		latest = str(int(time.strftime('%Y%m'))-1)
-		data = urllib.request.urlopen(f'https://publicdata.caida.org/datasets/ixps/ixs_{latest}.jsonl').read().decode()
-	decoder = json.JSONDecoder()
-	objects = []
-	for line in data.split('\n'):
-		if len(line) > 0 and line[0][0] != "#":
-			objects.append(decoder.decode(line))
-	json_data = json.loads(json.dumps(objects))
-	return [ip for item in json_data if item['prefixes']['ipv'+version] for ip in item['prefixes']['ipv'+version]]
+	if (latest := determine_latest_db()):
+		try:
+			data = urllib.request.urlopen(f'https://publicdata.caida.org/datasets/ixps/ixs_{latest}.jsonl').read().decode()
+		except:
+			latest = str(int(time.strftime('%Y%m'))-1)
+			data = urllib.request.urlopen(f'https://publicdata.caida.org/datasets/ixps/ixs_{latest}.jsonl').read().decode()
+		decoder = json.JSONDecoder()
+		objects = []
+		for line in data.split('\n'):
+			if len(line) > 0 and line[0][0] != "#":
+				objects.append(decoder.decode(line))
+		json_data = json.loads(json.dumps(objects))
+		return [ip for item in json_data if item['prefixes']['ipv'+version] for ip in item['prefixes']['ipv'+version]]
 
 def generate_list():
 	return {
@@ -88,7 +105,46 @@ def generate_list():
 		'ixps' : {
 			'4': sorted(get_ixps('4')),
 			'6': sorted(get_ixps('6'))
-		}
+		},
+        'private' : {
+			'4': [
+				'0.0.0.0/8',         # "This" network
+				'10.0.0.0/8',        # Private networks
+				'100.64.0.0/10',     # Carrier-grade NAT - RFC 6598
+				'127.0.0.0/8',       # Host loopback
+				'169.254.0.0/16',    # Link local
+				'172.16.0.0/12',     # Private networks
+				'192.0.0.0/24',      # IETF Protocol Assignments
+				'192.0.0.0/29',      # DS-Lite
+				'192.0.0.170/32',    # NAT64
+				'192.0.0.171/32',    # DNS64
+				'192.0.2.0/24',      # Documentation (TEST-NET-1)
+				'192.88.99.0/24',    # 6to4 Relay Anycast
+				'192.168.0.0/16',    # Private networks
+				'198.18.0.0/15',     # Benchmarking
+				'198.51.100.0/24',   # Documentation (TEST-NET-2)
+				'203.0.113.0/24',    # Documentation (TEST-NET-3)
+				'240.0.0.0/4',       # Reserved
+				'255.255.255.255/32' # Limited Broadcast
+			],
+            '6': [
+				'::/128',            # Unspecified address
+				'::1/128',           # Loopback address
+				'::ffff:0:0/96',     # IPv4 mapped addresses
+				'64:ff9b::/96',      # IPv4/IPv6 translation
+				'100::/64',          # Discard prefix
+				'2001::/32',         # Teredo tunneling	\
+				'2001:10::/28',      # ORCHIDv2
+				'2001:20::/28',      # ORCHIDv2
+				'2001:2::/48',       # Benchmarking
+				'2001:db8::/32',     # Documentation
+				'2002::/16',         # 6to4
+				'fc00::/7',          # Unique local
+				'fe80::/10',         # Link local
+				'ff00::/8'           # Multicast
+                        
+			]
+		},
 	}
 
 
