@@ -26,6 +26,8 @@ This is a **26%** drop in total IP addresses...
 
 While this is still a huge number, total IP addresses dropped **96.31%** here...
 
+## See [avoidr](https://github.com/acidvegas/avoidr) for EXCLUSIVE exclusions
+
 ___
 
 <h6 align="center">Mirrors</h1>
